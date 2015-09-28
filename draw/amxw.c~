@@ -1,0 +1,946 @@
+/* *
+       File:             amxw.c
+       Authors:          Andrew Moore, Mary Soon Lee, Mike Duggan
+       Created:          9th Feb 1990
+       Modified:         4 October 96
+       Description:      Andrew's interface to X-windows. Use in place of 
+                         amsv.c and in conjunction with amgr.c and link to 
+                         the following libraries:
+
+                               -lX11
+
+       Note:             20 Nov 95, Mary altered this file to include
+                         the basic graphics code for the Visual C++/
+			 Windows NT world.... 30 Nov 95, expo support
+			 in document structures added.  Last modified
+			 by Mary: 8 Dec 95
+
+                         Sometime in 96: winamgr code added by Mike
+*/
+
+#include <stdio.h>
+#include <math.h>
+#include "amxw.h"
+
+#ifdef PC_MVIS_PLATFORM
+
+extern int clientwidth,clientheight,charwidth,charheight,panewidth,paneheight;
+extern int GFontSize;
+extern HWND hPict;
+extern HANDLE MouseClick;
+extern POINT MouseCoords;
+extern int MouseButton;
+extern CRITICAL_SECTION critsect;
+
+extern int MemWidth,MemHeight,xScroll,yScroll;
+extern bool ScrollbarsOn;
+
+HDC hPictDC = NULL;
+HBITMAP hBitmap = NULL;
+HBRUSH hBrush = NULL;
+HPEN hPen = NULL;
+COLORREF pencolor = RGB(0,0,0);
+
+double CharWidth = 8.0, CharHeight = 16.0;
+
+void InitPictDC(HDC hdc){
+	SetMapMode(hdc,MM_ISOTROPIC);
+	SetWindowExtEx(hdc,512,512,NULL);
+  if(ScrollbarsOn){
+	  SetViewportExtEx(hdc,clientwidth/2-2-GetSystemMetrics(SM_CXVSCROLL),
+                    (int) (clientheight-charheight*1.5-GetSystemMetrics(SM_CYHSCROLL)),NULL);
+  } else {
+	  SetViewportExtEx(hdc,clientwidth/2-2,-(int) (charheight*1.5-clientheight),NULL);
+  }
+	SetViewportOrgEx(hdc,0,0,NULL);
+}
+
+void RedrawPict(HDC hdc){
+	int release = 0;
+	if(!hdc){
+		hdc = GetDC(hPict);
+		release = 1;
+	}
+	InitPictDC(hdc);
+
+	BitBlt(hdc,0,0,panewidth,paneheight,hPictDC,xScroll,yScroll,SRCCOPY);
+	if(release) ReleaseDC(hPict,hdc);
+}
+
+#endif
+
+void simple_rgb(int ag_color, double *r_r, double *r_g, double *r_b)
+{
+  if ( ag_color >= AG_GRAYSCALE_BASE && ag_color < NUM_COLORS )
+  {
+    double x = (ag_color - AG_GRAYSCALE_BASE) / (double) (NUM_GRAY_SCALES-1);
+    x = sqrt(x);
+    x *= 0.88;
+    *r_r = x;
+    *r_g = x;
+    *r_b = x;
+  }
+  else
+  {
+    switch(ag_color)
+    {
+      case AG_BLACK: *r_b = 0.0; *r_g = 0.0; *r_r = 0.0; break;
+      case AG_WHITE: *r_b = 1.0; *r_g = 1.0; *r_r = 1.0; break;
+      case AG_GRAY: *r_b = 0.5; *r_g = 0.5; *r_r = 0.5; break;
+      case AG_DARKRED: *r_b = 0.0; *r_g = 0.0; *r_r = 0.5; break;
+      case AG_RED: *r_b = 0.0; *r_g = 0.0; *r_r = 1.0; break;
+      case AG_OLIVE: *r_b = 0.0; *r_g = 0.5; *r_r = 0.5 ; break;
+      case AG_YELLOW: *r_b = 0.0; *r_g = 1.0; *r_r = 1.0; break;
+      case AG_DARKGREEN: *r_b = 0.0; *r_g = 0.5; *r_r = 0.0; break;
+      case AG_GREEN: *r_b = 0.0; *r_g = 1.0; *r_r = 0.0; break;
+      case AG_BLUEGREEN: *r_b = 0.5; *r_g = 0.5; *r_r = 0.0; break;
+      case AG_CYAN: *r_b = 1.0; *r_g = 1.0; *r_r = 0.0; break;
+      case AG_DARKBLUE: *r_b = 0.5; *r_g = 0.0; *r_r = 0.0; break;
+      case AG_BLUE: *r_b = 1.0; *r_g = 0.0; *r_r = 0.0; break;
+      case AG_PURPLE: *r_b = 0.5; *r_g = 0.0; *r_r = 0.5; break;
+      case AG_MAGENTA: *r_b = 1.0; *r_g = 0.0; *r_r = 1.0; break;
+      default: my_error("simple_rgb: unknown ag_color"); break;
+    }
+  }
+}
+
+/* Calling simple_spectrum_color with a double in the range [0, 1.0]
+   will return the integer that is closest to the specified fraction
+   of the way along the rainbow spectrum described, with 0.0
+   being the red end and 1.0 being the violet end.  Note that white
+   is excluded. */
+int simple_spectrum_color(double fract)
+{
+  int res = 0;
+
+  if ((fract < 0.0) || (fract > 1.0))
+    my_error("Argument out of range in simple_spectrum_color");
+  res = (int) floor((double) (NUM_AG_COLORS - 1) * fract);
+  if (res > 0) 
+     res += 1;    /* Exclude white */
+  if (res == NUM_AG_COLORS)
+    res = NUM_AG_COLORS - 1;  /* special case correction for fract = 1.0 */
+  return(res);
+}
+
+double invert_simple_spectrum_color(int color)
+{
+  double result;
+  if (color > 1) color--; /* white was skipped earlier */
+  result = (double)color/(double)NUM_COLORS;
+  if (result < 0.0) result = 0.0;
+  if (result > 1.0) result = 1.0;
+  return result;
+}
+
+int opposite_simple_spectrum_color(int color){
+  int ret;
+  double frac;
+  if(color>=AG_GRAYSCALE_BASE && color<NUM_COLORS) 
+    ret = NUM_COLORS-(color-AG_GRAYSCALE_BASE)-1;
+  else if(color==AG_WHITE) ret=AG_BLACK;
+  else if(color==AG_BLACK) ret=AG_WHITE;
+  else if(color==AG_GRAY) ret=AG_GRAY;
+  else {
+    frac = invert_simple_spectrum_color(color)+.5;
+    if(frac>1.0) frac -= 1.0;
+    ret = simple_spectrum_color(frac);
+  }
+  return ret;
+}
+                                   
+int Pen_Color = AG_BLACK;  /* Any apict elements on elements to be
+                             drawn on the screen will be this color.  
+                             Should be in the range [0, NUM_COLORS - 1] */
+
+/* Returns the current color of the pen */
+int simple_pen_color()
+{
+  return(Pen_Color);
+}
+
+/* ======================================================================= */
+/* There are two versions of the simple graphics functions.  First we give */
+/* the definitions for X/Unix (i.e. UNIX_XW_PLATFORM defined in standard.h)*/
+/* then the definitions for non-X, non-TTY versions.                       */
+/* ======================================================================= */
+
+#ifdef UNIX_XW_PLATFORM
+
+#include </etc/X11/cursorfont.h> 
+#include <X11/Xlib.h> 
+#include <X11/Xutil.h>
+
+#define DEFAULT_WSIZE 512
+
+double D_xmax = DEFAULT_WSIZE;
+double D_ymax = DEFAULT_WSIZE;
+
+double Me_xmax = 512.0;
+double Me_ymax = 512.0;
+
+double Scale = 512.0;
+
+/*
+int Window_width = 256;
+int Window_height = 256;
+*/
+int Window_width = DEFAULT_WSIZE;
+int Window_height = DEFAULT_WSIZE;
+int X_base = 1;
+int Y_base = 1;
+
+#define METODX(x) ((int) floor(0.5 + (x) * D_xmax / Scale))
+#define METODY(y) (Window_height - ((int) floor(0.5 + D_ymax * (y) / Scale)))
+
+#define DXTOME(x) (((double) (x)) * Scale / D_xmax)
+#define DYTOME(y) (Scale * (((double) (Window_height - (y)) / D_ymax)))
+
+/* The following global tells us whether an X-window exists to write to */
+bool Ax_active = FALSE;
+
+
+
+Display *display;
+Window windowid;
+int screen;
+GC gc;
+Font awm_font;
+unsigned long border, background;
+
+void screen_update(){
+}
+
+void screen_line(double x1,double y1,double x2, double y2)
+{
+  if ( !Ax_active ) return;
+  XDrawLine(display,windowid,gc,METODX(x1),METODY(y1),METODX(x2),METODY(y2));
+}
+
+void screen_show()
+{
+  if ( !Ax_active ) return;
+  XFlush(display);
+}
+
+void screen_clear()
+{
+  if ( !Ax_active ) return;
+  XClearWindow(display,windowid);
+}
+
+void screen_dot(double x, double y)
+{
+  int x1 = METODX(x);
+  int y1 = METODY(y);
+  if ( !Ax_active ) return;
+  XDrawPoint(display,windowid,gc,x1,y1-2);
+  XDrawLine(display,windowid,gc,x1-1,y1-1,x1+1,y1-1);
+  XDrawLine(display,windowid,gc,x1-2,y1,x1+2,y1);
+  XDrawLine(display,windowid,gc,x1-1,y1+1,x1+1,y1+1);
+  XDrawPoint(display,windowid,gc,x1,y1+2);
+}
+
+void screen_pixel(double x, double y)
+{
+  int x1 = METODX(x);
+  int y1 = METODY(y);
+  if ( !Ax_active ) return;
+  XDrawPoint(display,windowid,gc,x1,y1);
+}
+
+void screen_box(double x, double y, double w, double h)
+{
+  if ( !Ax_active ) 
+    return;
+  else
+  {
+    int x1 = METODX(x);
+    int y1 = METODY(y);
+    int x2 = METODX(x+w);
+    int y2 = METODY(y+h);
+    int h1,w1;
+
+    if ( x1 < x2 )
+      w1 = x2 - x1;
+    else
+    {
+      w1 = x1 - x2;
+      x1 = x2;
+    }
+    
+    if ( y1 < y2 )
+      h1 = y2 - y1;
+    else
+    {
+      h1 = y1 - y2;
+      y1 = y2;
+    }
+    
+    XFillRectangle(display,
+                   windowid,
+                   gc,
+                   x1,
+                   y1,
+                   (unsigned int) w1,
+                   (unsigned int) h1
+                  );
+  }
+}
+
+void screen_circle(double x, double y, double r)
+{
+  if ( Ax_active )
+  {
+    int rad = ((int) (r * D_xmax / Scale));
+    XDrawArc(display,windowid,gc,
+             METODX(x)-rad,METODY(y)-rad,2 * rad,2 * rad,
+             0,360*64
+            );
+  }
+}
+
+void screen_disc(double x, double y, double r)
+{
+  if ( Ax_active )
+  {
+    int rad = ((int) (r * D_xmax / Scale));
+    XFillArc(display,windowid,gc,
+             METODX(x)-rad,METODY(y)-rad,2 * rad,2 * rad,
+             0,360*64
+            );
+  }
+}
+
+void screen_print(char *s, double x, double y)
+{
+  int length = 0;
+  if ( !Ax_active ) return;
+  
+  while ( length < 100 && s[length] != '\0' )
+    length += 1;
+
+  XDrawString(display, windowid, gc, METODX(x), METODY(y), s, length);
+}
+
+void screen_lock()
+{
+}
+
+void screen_unlock()
+{
+}
+
+/* ===================================================================== */
+/* Color handling by Mary Soon Lee.                                      */
+/* This section created on 1 July 95.                                    */
+/* Last updated 2 July 95.                                               */
+/* Note that some of the basic graphics code is in amgr.c                */
+/* ===================================================================== */
+
+/* ===================================================================== */
+/* First some notes on color under X Windows.
+
+   Colormaps are used to map the bit value of a pixel to the color
+   displayed for it.  Some computers allow you to specify multiple
+   colormaps, but the simplest, safest way to use color under X is
+   just to accept the DefaultColormap.  (Creating new colormaps of
+   your own may affect the colors in other windows.)  
+
+   An entry in a colormap is called a colorcell, and has three values
+   specifying red, green, and blue intensities.  A display may only be
+   able to show, say, sixteen different colors at a time, even when
+   those sixteen colors can be drawn from a much larger set.  The
+   colormap is a lookup table mapping pixel values (from 0 up to the
+   maximum number of colors in the colormap) onto the corresponding
+   colorcell.
+
+   To get the default colormap do:
+
+     Colormap cmap;
+     cmap = DefaultColormap(display,DefaultScreen(display));
+
+   XAllocColor finds the index of the colorcell with the closest RGB
+   values to those requested.  If the call to XAllocColor fails to
+   find an adequate match, it will return False.  BlackPixel and
+   WhitePixel should always return something.
+
+   To specify the desired RGB value to XAllocColor, the XColor
+   structure is used:
+     typedef struct {
+        unsigned long pixel;               <-- pixel value
+        unsigned short red, green, blue;   <-- RGB values
+        char flags;                        <-- DoRed, DoGreen, DoBlue
+        char pad;                          <-- ignore
+     } XColor;
+
+    The red, green, and blue members are 16-bit values.  Full
+    brightness in a color is 65535, off is 0; the server scales these
+    values to the true underlying range.
+
+    Putting this together, to request an XColor with certain RGB
+    values, first set the red, green, blue fields in an XColor
+    appropriately, and then call XAllocColor:
+
+      XColor a_color;
+      a_color.red = [integer from 0 to 65535]
+      a_color.green = [integer from 0 to 65535]
+      a_color.blue = [integer from 0 to 65535]
+      if (XAllocColor(display, colormap, &a_color) == 0)
+         [call failed: handle failure]
+
+    Assuming the call to XAllocColor succeeded (nonzero value
+    returned), a_color will now have its pixel field set to the index
+    of the colorcell with the closest RGB values to those in a_color.
+    This pixel value can be used to set foreground or background
+    colors by calling either:
+
+      XSetForeground(display,gc,a_color.pixel);
+      XSetBackground(display,gc,a_color.pixel);
+
+   On a monochrome screen all colors other than yellow and white should
+   be drawn as black; yellow and white should be drawn as white.
+*/
+/* ===================================================================== */
+
+XColor Fg_xcolor;          /* XColor structure representing the */
+                           /* foreground color */
+int spectrum_value[NUM_COLORS]; /* spectrum_value[i] gives the index */
+                                /* of the colorcell in the X Windows */
+                                /* DefaultColormap that most closely */
+                                /* corresponds to color i in the amut */
+                                /* rainbow spectrum (see above).  */
+bool spectrum_values_assigned = FALSE; /* This is false initially. */
+                           /* When a color is first requested using */
+                           /* simple_set_pen_color, */
+                           /* simple_set_spectrum_values is called and */
+                           /* the spectrum_value vector is initialized */
+                           /* appropriately; spectrum_values_assigned */
+                           /* is then set to TRUE.  */
+
+/* Sets the amut rainbow spectrum values correctly....
+   Color 3 is the extreme red end of an approximate rainbow spectrum
+   ordering of the NUM_COLORS provided by amut graphics.  Color
+   NUM_COLORS - 1 is the extreme violet end of that spectrum.  The
+   first three "colors" in the spectrum are black (color 0), white
+   (color 1), and grey (color 2).
+*/
+void simple_set_spectrum_values()
+{
+  Colormap cmap;
+  XColor a_color;
+  int i;
+  bool first_color_failure = TRUE;
+
+  if ( Ax_active )
+  {
+    if (spectrum_values_assigned)
+      printf("Warning: set_spectrum_values has already been called.\n");
+    cmap = DefaultColormap(display,DefaultScreen(display));
+    for (i = 0; i < NUM_COLORS; i++)
+    {
+      double r, g, b;
+      int full_color = 65535;
+      simple_rgb(i, &r, &g, &b);
+      a_color.red = (int) floor(r * full_color);
+      a_color.green = (int) floor(g * full_color);
+      a_color.blue = (int) floor(b * full_color);
+      if (XAllocColor(display, cmap, &a_color) == 0)
+      {
+	/* Note that we rely on black and white being the first two
+	   colors.... */
+	if (i == AG_BLACK)
+	  my_error("Fatal failure: unable to find even color black");
+	else if (i == AG_WHITE)
+	  my_error("Fatal failure: unable to find even color white");
+	else
+        {
+	  if (first_color_failure)
+          {
+	    first_color_failure = FALSE;
+#ifdef VERBOSE_COLOR_WARNING
+	    printf("\n\n\n!!!!!! ++++++++++++++++++++++++++++++++++++++++\n");
+	    printf("WARNING: Color allocation failure....    Users are advised to kill other\n");
+	    printf("applications with heavy color demands before using color ag graphics\n");
+	    printf("!!!!!! ++++++++++++++++++++++++++++++++++++++++\n");
+#endif
+	    /*wait_for_key();*/
+	  }
+          /* Accept the given color, no matter how crappy.  But
+             XAllocColor may bizzarely have failed to update the
+             red/green/blue fields of a_color correctly, so we must
+             set them using XQueryColor. 
+
+             EXCEPTION: if i == AG_YELLOW re-set the color to white... */
+	  if (i == AG_YELLOW)
+	  {  /* Assign white to yellow when no yellow is found. */
+	    spectrum_value[i] = spectrum_value[AG_WHITE];
+	  }
+	  else
+	    XQueryColor(display, cmap, &a_color);
+	}
+      }
+      if ((a_color.pixel == spectrum_value[AG_WHITE]) && 
+	  (i != AG_WHITE) && (i != AG_YELLOW))
+      {  /* Never assign white to any color other than yellow.  Use
+	    black instead.  */
+	spectrum_value[i] = spectrum_value[AG_BLACK];
+      }
+      else
+	spectrum_value[i] = a_color.pixel;
+    }
+    spectrum_values_assigned = TRUE;
+  }
+}
+
+/* Returns the ith spectrum_value */
+int simple_spectrum_value(int i)
+{
+  int res = 0;
+
+  if (Ax_active)
+  {
+    if (!spectrum_values_assigned)
+      simple_set_spectrum_values();
+    res = spectrum_value[i];
+  }
+  return(res);
+}
+
+/* Sets the pen color to the specified amut rainbow spectrum color. */ 
+void simple_set_pen_color(int amut_col)
+{
+  extern int Pen_Color;
+
+  if (Ax_active)
+  {
+    XSetForeground(display,gc,simple_spectrum_value(amut_col));
+  }
+  Pen_Color = amut_col;
+}
+   
+void setup_ax()
+{
+  XSetWindowAttributes wAttribs;
+  Cursor my_cursor;
+
+  XSizeHints *size_hints = (XSizeHints *) malloc(sizeof(XSizeHints));
+ 
+  if ((display = XOpenDisplay(0)) == 0)
+  {
+    printf("Andrew's X routines can't be used here.\n");
+    return;
+  }
+  else
+    Ax_active = TRUE;
+
+  screen = DefaultScreen(display);
+  border = BlackPixel (display,screen);
+  background = WhitePixel (display, screen);
+
+  windowid = XCreateSimpleWindow
+              (display, RootWindow(display, screen),
+               X_base, Y_base, Window_width, Window_height, 3,
+               border, background);
+
+  size_hints->flags = PPosition | PSize| PMinSize | USPosition | USSize;
+  size_hints->min_width = Window_width;    /* GJG changed from 512 6/28/99 */
+  size_hints->min_height = Window_height;  /* GJG changed from 512 6/28/99 */
+    
+  wAttribs.bit_gravity = CenterGravity;
+  wAttribs.backing_store = Always;
+  wAttribs.event_mask = ButtonPressMask | ButtonReleaseMask | 
+    ButtonMotionMask | StructureNotifyMask | ResizeRedirectMask;
+
+ XChangeWindowAttributes (display, windowid, CWBackingStore | CWEventMask,
+                           &wAttribs);
+/*  XMapWindow(display, windowid); */
+
+  gc = XCreateGC(display, windowid, 0,0);
+
+  XSetForeground(display,gc,border);
+
+  XFlush(display);
+  XSelectInput(display, windowid, 
+               KeyPressMask | KeyReleaseMask | ButtonPressMask |
+               ButtonReleaseMask | PointerMotionMask |
+               ExposureMask | StructureNotifyMask
+              );
+
+  XMapRaised(display,windowid);
+
+//#define WIN_TITLE "Auton's Graphics"
+#define WIN_TITLE "SequeL's Graphics"
+
+  XSetStandardProperties(display, windowid, WIN_TITLE, WIN_TITLE, None,
+                         NULL,0,size_hints);
+  
+  my_cursor = XCreateFontCursor(display,XC_pencil);
+  XDefineCursor(display,windowid,my_cursor);
+}
+
+bool Ax_known_to_be_unavailable = FALSE;
+
+void screen_on()
+{
+  if ( Ax_active )
+    screen_clear();
+  else if ( !Ax_known_to_be_unavailable )
+  {
+    setup_ax();
+    if ( !Ax_active )
+      Ax_known_to_be_unavailable = TRUE;
+#ifdef PC_PLATFORM
+    Ax_active = TRUE; 
+#endif
+    screen_clear();
+    screen_show();
+  }
+}
+
+void screen_off()
+{
+  if ( !Ax_active ) return;
+#ifdef NEVER
+  /*  AWM: I'd prefer the white window to not disappear when ag_off() is called. */
+
+  XCloseDisplay(display);
+  Ax_active = FALSE;
+#endif
+}
+
+void screen_window_shape(int width_in_pixels,int height_in_pixels)
+{
+  bool turn_on_again = FALSE;
+
+  if ( Ax_active )
+  {
+    XCloseDisplay(display);
+    Ax_active = FALSE;
+    turn_on_again = TRUE;
+  }
+  D_xmax = (double) width_in_pixels;
+  D_ymax = (double) height_in_pixels;
+  Window_width = width_in_pixels;
+  Window_height = height_in_pixels;
+  if ( turn_on_again )
+    screen_on();
+}
+
+void screen_disappear()
+{
+  if ( Ax_active )
+  {
+    XCloseDisplay(display); 
+    Ax_active = FALSE;
+  }
+}
+
+int simple_get_xy(char *prompt, double *rx, double *ry)
+{
+  XEvent ev;
+  bool waiting_for_button = TRUE;
+  XButtonEvent *bev;
+  int result;
+
+  if ( !Ax_active )
+  {
+    printf("%s.\nEnter x,y.\n",prompt);
+    scanf("%lf %lf",rx,ry);
+    scanf("%d",&result);
+  }
+  else
+  {
+    printf("%s (Click Mouse in Window)\n",prompt);
+
+    while ( waiting_for_button || 
+            XPending(display) != 0
+          )
+    {
+      XNextEvent(display,&ev);
+      if ( ev.type == ButtonPress )
+      {
+        bev = (XButtonEvent *) &ev;
+
+        *rx = DXTOME( bev -> x );
+        *ry = DYTOME( bev -> y );
+
+        switch( bev -> button )
+        {
+          case Button1: result = 1; break;
+          case Button2: result = 2; break;
+          case Button3: result = 3; break;
+          default:      result = 4; break;
+        }
+
+        waiting_for_button = FALSE;
+      }
+    }
+  }
+
+  return(result);
+}
+
+#else /* we are not on a  */
+#ifdef PC_MVIS_PLATFORM
+
+#define GRAPHICS_READY_FILE "C:\\gready.txt"
+#define GRAPHICS_FILE "C:\\graphics.txt"
+
+FILE *gfp = NULL;
+
+void screen_off(void){
+  RedrawPict(NULL);
+}
+
+void old_screen_off(void){
+	if(hPictDC) DeleteDC(hPictDC);
+	hPictDC = NULL;
+	if(hBitmap) DeleteObject(hBitmap);
+	hBitmap = NULL;
+}
+
+bool ChangedWindowShape = FALSE;
+void screen_window_shape(int width_in_pixels,int height_in_pixels) ;
+
+void screen_on(void){
+	HBRUSH hbrush;
+	HDC hdc;
+  HFONT hFontDeactive;
+  LOGFONT lf;
+
+  /*Delete stuff from previous ag_on()*/
+  old_screen_off();
+  if(ChangedWindowShape) ChangedWindowShape = FALSE;
+  else if(MemWidth!=512 || MemHeight!=512) screen_window_shape(512,512);
+  xScroll = yScroll = 0;
+
+  hbrush = (HBRUSH) GetStockObject(WHITE_BRUSH);
+  hdc = GetDC(hPict);
+	hBrush = (HBRUSH) GetStockObject(BLACK_BRUSH);
+  pencolor = RGB(0,0,0);
+
+	hFontDeactive = (HFONT) GetStockObject(SYSTEM_FIXED_FONT);
+  GetObject(hFontDeactive,sizeof(LOGFONT),&lf);
+  CharWidth = (double) lf.lfWidth-2+GFontSize;
+  CharHeight = (double) lf.lfHeight-4+2*GFontSize;
+	InitPictDC(hdc);			
+  
+  /*create a memory device-context*/
+	if (hPictDC) old_screen_off();  /* this is to free old memory */
+	hPictDC = CreateCompatibleDC(hdc);
+//  InitPictDC(hPictDC);
+
+	if(!hBitmap){
+		hBitmap = CreateCompatibleBitmap(hdc,MemWidth,MemHeight);
+	}
+
+	SelectObject(hPictDC,hBitmap);
+	SelectObject(hPictDC,hbrush);
+  SelectObject(hPictDC,hFontDeactive);
+  SetBkMode(hPictDC,TRANSPARENT);
+	PatBlt(hPictDC,0,0,MemWidth,MemHeight,PATCOPY);
+
+	ReleaseDC(hPict,hdc);
+}
+
+void gfp_check(char *s)
+{
+  if ( gfp == NULL )
+  {
+    printf("You attempted to do a graphics %s without an ag_on(..)\n",s);
+    wait_for_key();
+    exit(-1);
+  }
+}
+
+/* void sleep(int seconds); */
+
+FILE *safe_patient_open_to_write(char *filename)
+{
+  FILE *s = fopen(filename,"w");
+  if ( s == NULL )
+  {
+    am_sleep(1);
+    s = fopen(filename,"w");
+  }
+  if ( s == NULL )
+  {
+    printf("Will wait 5 seconds to re-open %s...\n",filename);
+    am_sleep(5);
+    s = fopen(filename,"w");
+    if ( s != NULL )
+      printf("   ...opened successfully\n");
+  }
+
+  if ( s == NULL )
+  {
+    printf("*** Cannot open %s for writing\n",filename);
+    wait_for_key();
+    exit(-1);
+  }
+
+  return s;
+}
+
+int simple_get_xy(char *prompt, double *rx, double *ry)
+{
+  int ret;
+  HDC hdc = GetDC(hPict);
+
+  if(strlen(prompt)==0) strcpy(prompt,"Waiting for a mouse click....");
+  gui_prompt(prompt,CLI_PROCESSING,TRUE);
+
+  RedrawPict(hdc);
+  ResetEvent(MouseClick);
+  WaitForSingleObject(MouseClick,INFINITE);
+
+  EnterCriticalSection(&critsect);
+  *rx = MouseCoords.x;
+  *ry = MouseCoords.y;
+  ret = MouseButton;
+  LeaveCriticalSection(&critsect);
+
+  gui_unprompt();
+	ReleaseDC(hPict,hdc);
+  return ret;
+}
+
+/*This is called by ag_show(), so that under NT the window does not have to be updated 
+  after each graphics call.  (Hence the empty screen_show() also.)*/
+void screen_update(){
+  RedrawPict(NULL);
+}
+
+void screen_show()
+{
+  /* RedrawPict(NULL); */
+}
+
+/* Sets the current color of the pen.  Any circles/lines/discs/rects/
+   strings added will be in the new color until the next call to 
+   simple_set_pen_color.  */
+void simple_set_pen_color(int amut_col)
+{
+  double r,g,b;
+  simple_rgb(amut_col,&r,&g,&b);
+  /* printf("simple_set_pen_color(): setting pen color to (%.1f,%.1f,%.1f).\n",r,g,b); */
+  pencolor = RGB(255*r,255*g,255*b);
+  if(hPen) DeleteObject(hPen);
+  if(hBrush) DeleteObject(hBrush);
+  hBrush = CreateSolidBrush(pencolor);
+  hPen = CreatePen(PS_SOLID,1,pencolor);
+  SetTextColor(hPictDC,pencolor);
+  SelectObject(hPictDC,hBrush);
+  SelectObject(hPictDC,hPen);
+}
+
+void screen_line(double u, double v, double x, double y){
+  /* printf("screen_line(): drawing line from (%.1f,%.1f)-(%.1f,%.1f)\n",u,v,x,y); */
+  MoveToEx(hPictDC,(int) u,MemHeight-(int) v,NULL);
+	LineTo(hPictDC,(int) x,MemHeight-(int) y);
+	/* RedrawPict(NULL); */
+}
+
+void screen_circle(double x, double y, double r)
+{
+  /* printf("screen_circle(): drawing circle of radius %.1f at (%.1f,%.1f)\n",r,x,y); */
+  SelectObject(hPictDC,GetStockObject(NULL_BRUSH));  /* WHITE_BRUSH? */
+  Ellipse(hPictDC,(int)(x-r),MemHeight-(int)(y-r),(int)(x+r),MemHeight-(int)(y+r));
+  /* RedrawPict(NULL); */
+}
+
+/*What does y determine?*/
+void screen_print(char *s, double x, double y)
+{
+  /* printf("screen_print(): printing \"%s\" at (%.1f,%.1f)\n",s,x,y); */
+  TextOut(hPictDC,(int) x,MemHeight-(int) y-charheight,s,strlen(s));
+  /* RedrawPict(NULL); */
+}
+
+void screen_box(double x, double y, double w, double h)
+{
+  /* printf("screen_box(): drawing a box in the bounds of (%.1f,%.1f)-(%.1f,%.1f)\n",x,y,x+w,y+h); */
+  SelectObject(hPictDC,hBrush);
+  Rectangle(hPictDC,(int) x, MemHeight-(int) y, (int) (x+w), MemHeight-(int) (y+h));
+  /* RedrawPict(NULL); */
+}
+
+void screen_disc(double x, double y, double r)
+{
+  /* printf("screen_disc(): drawing disc of radius %.1f at (%.1f,%.1f)\n",r,x,y); */
+  SelectObject(hPictDC,hBrush);
+  Ellipse(hPictDC,(int)(x-r),MemHeight-(int)(y-r),(int)(x+r),MemHeight-(int)(y+r));
+  /* RedrawPict(NULL); */
+}
+
+void screen_pixel(double x, double y) 
+{
+  /* printf("screen_pixel(): setting pixel (%.1f,%.1f)\n",x,y); */
+  SetPixel(hPictDC,(int) x,MemHeight-(int) y,pencolor);
+  /* RedrawPict(NULL); */
+}
+
+void screen_dot(double x, double y)
+{
+  /* printf("screen_dot(): drawing dot at (%.1f,%.1f)\n",x,y); */
+  SelectObject(hPictDC,hBrush);
+  Ellipse(hPictDC,(int)(x-2),MemHeight-(int)(y-2),(int)(x+2),MemHeight-(int)(y+2));
+  /* RedrawPict(NULL); */
+}
+
+void screen_window_shape(int width_in_pixels,int height_in_pixels) 
+{
+  MemWidth = width_in_pixels;
+  MemHeight = height_in_pixels;
+  if(width_in_pixels>512 || height_in_pixels>512)
+  {
+    ScrollbarsOn = TRUE;
+    xScroll = 0;
+    yScroll = 0;
+  } else {
+    ScrollbarsOn = FALSE;
+  }
+  SendMessage(hPict,WM_SHOWSCROLL,0,ScrollbarsOn);
+  ChangedWindowShape = TRUE;
+}
+
+void screen_disappear(){}
+
+#else /* PC_MVIS_PLATFORM */
+void setup_ax() {}
+void simple_set_pen_color(int amut_col) {}
+void screen_update() {}
+void screen_dot(double x, double y) {}
+void screen_pixel(double x, double y) {}
+void screen_disc(double x, double y, double r) {}
+void screen_box(double x, double y, double w, double h) {}
+void screen_print(char *s, double x, double y) {}
+void screen_show() {}
+void screen_refresh() {}
+void screen_on() {}
+void screen_off() {}
+void screen_clear() {}
+void screen_lock() {}
+void screen_unlock() {}
+void screen_line(double x1, double y1, double x2, double y2) {}
+void screen_circle(double x, double y, double r) {}
+void screen_window_shape(int width_in_pixels,int height_in_pixels) {}
+void screen_disappear() {}
+int simple_get_xy(char *prompt, double *rx, double *ry) { return 0;}
+
+#endif /* PC_MVIS_PLATFORM */
+
+/* ==================================================================== */
+/* As yet unimplemented...                                              */
+/* ==================================================================== */
+
+#endif /* Just finished dealing with not UNIX_WX_PLATFORM case */
+
+/* ===================================================================== */ 
+/* Below this line, the functionality is only for backwards
+   compatibility with UNIX research-software: not needed and
+   not-to-be-used by Auton software or stuff for the PC or other
+   platforms.
+*/
+

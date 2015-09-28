@@ -1,0 +1,431 @@
+# depslib dependency file v1.0
+1443282918 source:/home/tiber/BNB_Globlinear/draw/amgr.c
+	<stdio.h>
+	<math.h>
+	<stdlib.h>
+	"amgr.h"
+	"./utils/command.h"
+
+1443282854 /home/tiber/BNB_Globlinear/draw/amgr.h
+	"./utils/amut.h"
+	"./draw/amxw.h"
+
+1300384151 /home/tiber/BNB_Globlinear//utils/amut.h
+	"ambs.h"
+	"amar.h"
+	"amma.h"
+	"amdym.h"
+	"amiv.h"
+	"amdmex.h"
+	"ammarep.h"
+	"adgui.h"
+	"imat.h"
+
+1300384151 /home/tiber/BNB_Globlinear//utils/ambs.h
+	"standard.h"
+
+1300384152 /home/tiber/BNB_Globlinear//utils/standard.h
+	<stdio.h>
+	<string.h>
+	<stdlib.h>
+	<math.h>
+
+1300384151 /home/tiber/BNB_Globlinear//utils/amar.h
+	"ambs.h"
+	"amma.h"
+
+1300384151 /home/tiber/BNB_Globlinear//utils/amma.h
+	"ambs.h"
+	"amstr.h"
+	<stdarg.h>
+
+1300384151 /home/tiber/BNB_Globlinear//utils/amstr.h
+	"amma.h"
+
+1300384151 /home/tiber/BNB_Globlinear//utils/amdym.h
+	"ambs.h"
+	"amdyv.h"
+	"amdym.h"
+
+1300384151 /home/tiber/BNB_Globlinear//utils/amdyv.h
+	"ambs.h"
+
+1300384151 /home/tiber/BNB_Globlinear//utils/amiv.h
+	"ambs.h"
+	"amma.h"
+	"amar.h"
+
+1300384151 /home/tiber/BNB_Globlinear//utils/amdmex.h
+	"amiv.h"
+	"amdym.h"
+	"svd.h"
+
+1300384152 /home/tiber/BNB_Globlinear//utils/svd.h
+	"amdym.h"
+
+1300384151 /home/tiber/BNB_Globlinear//utils/ammarep.h
+	"standard.h"
+
+1300384151 /home/tiber/BNB_Globlinear//utils/adgui.h
+	"standard.h"
+	<afx.h>
+	<windows.h>
+	<commctrl.h>
+	<commdlg.h>
+	<stdio.h>
+	<stdlib.h>
+	<stdarg.h>
+	"amstr.h"
+	"../utils/miner_resource.h"
+	"miner_resource.h"
+	"utils/planit_resource.h"
+
+1300384152 /home/tiber/BNB_Globlinear//utils/miner_resource.h
+
+1300384151 /home/tiber/BNB_Globlinear//utils/imat.h
+	"amut.h"
+
+1443282902 /home/tiber/BNB_Globlinear//draw/amxw.h
+	"./utils/ambs.h"
+	"amgr.h"
+	"./utils/adgui.h"
+
+1443282854 /home/tiber/BNB_Globlinear//draw/amgr.h
+	"./utils/amut.h"
+	"./draw/amxw.h"
+
+1300384151 /home/tiber/BNB_Globlinear//utils/command.h
+	"amut.h"
+	"standard.h"
+	"genarray.h"
+
+1300384151 /home/tiber/BNB_Globlinear//utils/genarray.h
+	"amut.h"
+
+1300817147 source:/home/tiber/BNB_Globlinear/draw/amxw.c
+	<stdio.h>
+	<math.h>
+	"amxw.h"
+	<X11/cursorfont.h>
+	<X11/Xlib.h>
+	<X11/Xutil.h>
+
+1443282902 /home/tiber/BNB_Globlinear/draw/amxw.h
+	"./utils/ambs.h"
+	"amgr.h"
+	"./utils/adgui.h"
+
+1443284283 source:/home/tiber/BNB_Globlinear/draw/apict.c
+	<stdio.h>
+	<math.h>
+	"./utils/ambs.h"
+	"apict.h"
+	"amgr.h"
+
+1443284367 /home/tiber/BNB_Globlinear/draw/apict.h
+	"./utils/ambs.h"
+	"./utils/amma.h"
+
+1300384133 source:/home/tiber/BNB_Globlinear/draw/drac.c
+	<stdio.h>
+	<math.h>
+	"drac.h"
+
+1443284745 /home/tiber/BNB_Globlinear/draw/drac.h
+	"./utils/ambs.h"
+	"amgr.h"
+	"./utils/amma.h"
+	"./utils/amar.h"
+	"ongr.h"
+	"./utils/amdym.h"
+	"apict.h"
+	"lingraph.h"
+
+1443284694 /home/tiber/BNB_Globlinear/draw/ongr.h
+	"./utils/ambs.h"
+	"amgr.h"
+	"./utils/amar.h"
+	"./utils/amut.h"
+
+1443284760 /home/tiber/BNB_Globlinear/draw/lingraph.h
+	"./utils/amut.h"
+	"apict.h"
+	"amgr.h"
+
+1300384133 source:/home/tiber/BNB_Globlinear/draw/fgraph.c
+	"fgraph.h"
+	"ongr.h"
+	"drac.h"
+
+1443284773 /home/tiber/BNB_Globlinear/draw/fgraph.h
+	"amgr.h"
+	"./utils/amut.h"
+
+1300384133 source:/home/tiber/BNB_Globlinear/draw/lingraph.c
+	"lingraph.h"
+	"ongr.h"
+
+1300384133 source:/home/tiber/BNB_Globlinear/draw/lingraphs.c
+	"lingraphs.h"
+
+1443284792 /home/tiber/BNB_Globlinear/draw/lingraphs.h
+	"./utils/genarray.h"
+	"lingraph.h"
+
+1300384133 source:/home/tiber/BNB_Globlinear/draw/ongr.c
+	<stdio.h>
+	<math.h>
+	"ongr.h"
+	<string.h>
+
+1443284829 source:/home/tiber/BNB_Globlinear/extra/bayesreg.c
+	"bayesreg.h"
+	"./utils/stats.h"
+
+1443284812 /home/tiber/BNB_Globlinear/extra/bayesreg.h
+	"./utils/amdmex.h"
+
+1300384152 /home/tiber/BNB_Globlinear//utils/stats.h
+	"amut.h"
+
+1443284901 source:/home/tiber/BNB_Globlinear/extra/hrect.c
+	"hrect.h"
+	"./draw/amgr.h"
+
+1300384135 /home/tiber/BNB_Globlinear/extra/hrect.h
+	"motutils.h"
+
+1443284862 /home/tiber/BNB_Globlinear/extra/motutils.h
+	"./utils/amdmex.h"
+
+1300384135 source:/home/tiber/BNB_Globlinear/extra/motutils.c
+	"motutils.h"
+
+1300384135 source:/home/tiber/BNB_Globlinear/extra/qopt.c
+	"qopt.h"
+
+1443284919 /home/tiber/BNB_Globlinear/extra/qopt.h
+	"./utils/amut.h"
+
+1443286003 source:/home/tiber/BNB_Globlinear/main.c
+	<stdio.h>
+	<stdlib.h>
+	<math.h>
+	<time.h>
+	"./utils/amut.h"
+	"./draw/amgr.h"
+	"./utils/ambs.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/amut.h
+	"ambs.h"
+	"amar.h"
+	"amma.h"
+	"amdym.h"
+	"amiv.h"
+	"amdmex.h"
+	"ammarep.h"
+	"adgui.h"
+	"imat.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/ambs.h
+	"standard.h"
+
+1300384152 /home/tiber/BNB_Globlinear/utils/standard.h
+	<stdio.h>
+	<string.h>
+	<stdlib.h>
+	<math.h>
+
+1300384151 /home/tiber/BNB_Globlinear/utils/amar.h
+	"ambs.h"
+	"amma.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/amma.h
+	"ambs.h"
+	"amstr.h"
+	<stdarg.h>
+
+1300384151 /home/tiber/BNB_Globlinear/utils/amstr.h
+	"amma.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/amdym.h
+	"ambs.h"
+	"amdyv.h"
+	"amdym.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/amdyv.h
+	"ambs.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/amiv.h
+	"ambs.h"
+	"amma.h"
+	"amar.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/amdmex.h
+	"amiv.h"
+	"amdym.h"
+	"svd.h"
+
+1300384152 /home/tiber/BNB_Globlinear/utils/svd.h
+	"amdym.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/ammarep.h
+	"standard.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/adgui.h
+	"standard.h"
+	<afx.h>
+	<windows.h>
+	<commctrl.h>
+	<commdlg.h>
+	<stdio.h>
+	<stdlib.h>
+	<stdarg.h>
+	"amstr.h"
+	"../utils/miner_resource.h"
+	"miner_resource.h"
+	"utils/planit_resource.h"
+
+1300384152 /home/tiber/BNB_Globlinear/utils/miner_resource.h
+
+1300384151 /home/tiber/BNB_Globlinear/utils/imat.h
+	"amut.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/adgui.c
+	"standard.h"
+	"adgui.h"
+	"amgr.h"
+	"amxw.h"
+	"amiv.h"
+	<process.h>
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/amar.c
+	<stdio.h>
+	<stdlib.h>
+	<math.h>
+	"amar.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/ambs.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	<time.h>
+	<setjmp.h>
+	<stdarg.h>
+	"ambs.h"
+	"adgui.h"
+	<windows.h>
+	<unistd.h>
+	<windows.h>
+	<unistd.h>
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/amdmex.c
+	"amdmex.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/amdym.c
+	<stdio.h>
+	<math.h>
+	<ctype.h>
+	"amdym.h"
+	"amma.h"
+	"amar.h"
+	"svd.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/amdyv.c
+	<stdio.h>
+	<math.h>
+	<ctype.h>
+	"amdyv.h"
+	"amma.h"
+	"amar.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/amiv.c
+	<stdio.h>
+	<math.h>
+	"amiv.h"
+	<limits.h>
+	"adgui.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/amma.c
+	<windows.h>
+	<stdio.h>
+	<math.h>
+	<string.h>
+	<stdlib.h>
+	<ctype.h>
+	"amma.h"
+	"amstr.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/ammarep.c
+	"ammarep.h"
+	"amma.h"
+	"amdym.h"
+	"amiv.h"
+	"stats.h"
+	"command.h"
+
+1300384152 /home/tiber/BNB_Globlinear/utils/stats.h
+	"amut.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/command.h
+	"amut.h"
+	"standard.h"
+	"genarray.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/genarray.h
+	"amut.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/amstr.c
+	"amstr.h"
+	<ctype.h>
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/boolvec.c
+	"boolvec.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/boolvec.h
+	"amma.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/command.c
+	"command.h"
+	"adgui.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/genarray.c
+	"genarray.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/hash.c
+	"hash.h"
+
+1300384151 /home/tiber/BNB_Globlinear/utils/hash.h
+	"amut.h"
+
+1300384151 source:/home/tiber/BNB_Globlinear/utils/imat.c
+	"imat.h"
+
+1300384152 source:/home/tiber/BNB_Globlinear/utils/randomization.c
+	"standard.h"
+	"randomization.h"
+	"amstr.h"
+
+1300384152 /home/tiber/BNB_Globlinear/utils/randomization.h
+	"amdym.h"
+
+1300384152 source:/home/tiber/BNB_Globlinear/utils/saarray.c
+	"saarray.h"
+
+1300384152 /home/tiber/BNB_Globlinear/utils/saarray.h
+	"amdmex.h"
+
+1300384152 source:/home/tiber/BNB_Globlinear/utils/stats.c
+	"stats.h"
+	<math.h>
+
+1300384152 source:/home/tiber/BNB_Globlinear/utils/svd.c
+	<stdio.h>
+	<math.h>
+	<ctype.h>
+	"svd.h"
+	"ambs.h"
+	"amma.h"
+	"amar.h"
+
